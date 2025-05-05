@@ -1,103 +1,146 @@
-import Image from "next/image";
+"use client";
+import { useState } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import {
+  agendar,
+  consultarPorCpf,
+  alterarData,
+  cancelar,
+} from './services/api';
+import { Agendamento } from './types/agendamento';
+import { maskCpf, maskTelefone, maskNome } from './utils/masks';
+import { isValidCpf, isValidTelefone, isValidNome, isValidDataHora } from './validator/validator';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [agendamento, setAgendamento] = useState<Agendamento>({
+    nome: '',
+    cpf: '',
+    telefone: '',
+    dataHora: '',
+  });
+  const [consultaCpf, setConsultaCpf] = useState('');
+  const [resultado, setResultado] = useState<Agendamento | null>(null);
+  const [novaData, setNovaData] = useState('');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    let maskedValue = value;
+
+    if (name === 'cpf') maskedValue = maskCpf(value).slice(0, 14);
+    else if (name === 'telefone') maskedValue = maskTelefone(value).slice(0, 15);
+    else if (name === 'nome') maskedValue = maskNome(value).slice(0, 60);
+
+    setAgendamento({ ...agendamento, [name]: maskedValue });
+  };
+
+  const handleAgendar = async () => {
+    if (!isValidNome(agendamento.nome)) {
+      return toast.error('Nome inválido.');
+    }
+
+    if (!isValidCpf(agendamento.cpf)) {
+      return toast.error('CPF inválido.');
+    }
+
+    if (!isValidTelefone(agendamento.telefone)) {
+      return toast.error('Telefone inválido.');
+    }
+
+    const agendamentoFormatado = {
+      ...agendamento,
+      cpf: agendamento.cpf.replace(/\D/g, ''),
+      telefone: agendamento.telefone.replace(/\D/g, '')
+    };
+
+    const erro = isValidDataHora(agendamento.dataHora);
+    if (erro) {
+      toast.error(erro);
+      return;
+    }
+
+    await agendar(agendamentoFormatado);
+    toast.success('Agendamento realizado com sucesso!');
+  };
+
+
+  const handleConsultar = async () => {
+    const cpfFormatado = consultaCpf.replace(/\D/g, '');
+
+    if (!isValidCpf(consultaCpf)) {
+      return toast.error('CPF inválido.');
+    }
+
+    try {
+      const res = await consultarPorCpf(cpfFormatado);
+      setResultado(res.data);
+    } catch {
+      toast.warn('Agendamento não encontrado.');
+      setResultado(null);
+    }
+  };
+
+  const handleAlterarData = async () => {
+    const cpfFormatado = consultaCpf.replace(/\D/g, '');
+
+    const erro = isValidDataHora(novaData);
+    if (erro) {
+      toast.error(erro);
+      return;
+    }
+
+    try {
+      await alterarData(cpfFormatado, novaData);
+      toast.success('Data alterada!');
+    } catch {
+      toast.error('Erro ao alterar data.');
+    }
+  };
+
+  const handleCancelar = async () => {
+    const cpfFormatado = consultaCpf.replace(/\D/g, '');
+    try {
+      await cancelar(cpfFormatado);
+      toast.success('Agendamento cancelado.');
+      setResultado(null);
+    } catch {
+      toast.error('Erro ao cancelar.');
+    }
+  };
+
+  return (
+      <div className="max-w-xl mx-auto p-5">
+        <h1>Agendamento de Doação de Sangue</h1>
+
+        <h2>Agendar</h2>
+        <input placeholder="Nome" name="nome" value={agendamento.nome} onChange={handleInput} maxLength={60} />
+        <input placeholder="CPF" name="cpf" value={agendamento.cpf} onChange={handleInput} maxLength={14} />
+        <input placeholder="Telefone" name="telefone" value={agendamento.telefone} onChange={handleInput} maxLength={15} />
+        <input type="datetime-local" name="dataHora" onChange={handleInput} />
+        <button onClick={handleAgendar}>Agendar</button>
+
+        <hr />
+
+        <h2>Consultar/Alterar/Cancelar</h2>
+        <input
+            placeholder="CPF"
+            value={consultaCpf}
+            onChange={(e) => setConsultaCpf(maskCpf(e.target.value).slice(0, 14))}
+        />
+        <button onClick={handleConsultar}>Consultar</button>
+
+        {resultado && (
+            <div>
+              <p><strong>Nome:</strong> {resultado.nome}</p>
+              <p><strong>Data:</strong> {new Date(resultado.dataHora).toLocaleString()}</p>
+
+              <input type="datetime-local" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
+              <button onClick={handleAlterarData}>Alterar Data</button>
+              <button onClick={handleCancelar}>Cancelar Agendamento</button>
+            </div>
+        )}
+        <ToastContainer position="top-right" autoClose={3000} />
+      </div>
   );
 }
