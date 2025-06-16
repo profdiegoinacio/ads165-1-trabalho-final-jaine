@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "agenda")
 public class Agendamento {
 
     @Id
@@ -13,10 +14,10 @@ public class Agendamento {
     private String nome;
     private String cpf;
     private String telefone;
+    private String email;
     private LocalDateTime dataHora;
 
     // Getters e Setters
-
     public Long getId() {
         return id;
     }
@@ -55,6 +56,27 @@ public class Agendamento {
 
     public void setDataHora(LocalDateTime dataHora) {
         this.dataHora = dataHora;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hemocentro_id")
+    private Hemocentro hemocentro;
+
+    // getters e setters
+    public Hemocentro getHemocentro() {
+        return hemocentro;
+    }
+
+    public void setHemocentro(Hemocentro hemocentro) {
+        this.hemocentro = hemocentro;
     }
 }
 

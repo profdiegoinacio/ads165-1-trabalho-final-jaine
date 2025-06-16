@@ -1,146 +1,74 @@
-"use client";
-import { useState } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import {
-  agendar,
-  consultarPorCpf,
-  alterarData,
-  cancelar,
-} from './services/api';
-import { Agendamento } from './types/agendamento';
-import { maskCpf, maskTelefone, maskNome } from './utils/masks';
-import { isValidCpf, isValidTelefone, isValidNome, isValidDataHora } from './validator/validator';
+"use client"
+import { useRouter } from 'next/navigation';
+import Header from './components/header/page';
+import { useEffect, useState } from 'react';
 
-export default function Home() {
-  const [agendamento, setAgendamento] = useState<Agendamento>({
-    nome: '',
-    cpf: '',
-    telefone: '',
-    dataHora: '',
-  });
-  const [consultaCpf, setConsultaCpf] = useState('');
-  const [resultado, setResultado] = useState<Agendamento | null>(null);
-  const [novaData, setNovaData] = useState('');
+export default function Apresentacao() {
+  const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
 
-  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-    let maskedValue = value;
-
-    if (name === 'cpf') maskedValue = maskCpf(value).slice(0, 14);
-    else if (name === 'telefone') maskedValue = maskTelefone(value).slice(0, 15);
-    else if (name === 'nome') maskedValue = maskNome(value).slice(0, 60);
-
-    setAgendamento({ ...agendamento, [name]: maskedValue });
-  };
-
-  const handleAgendar = async () => {
-    if (!isValidNome(agendamento.nome)) {
-      return toast.error('Nome inválido.');
-    }
-
-    if (!isValidCpf(agendamento.cpf)) {
-      return toast.error('CPF inválido.');
-    }
-
-    if (!isValidTelefone(agendamento.telefone)) {
-      return toast.error('Telefone inválido.');
-    }
-
-    const agendamentoFormatado = {
-      ...agendamento,
-      cpf: agendamento.cpf.replace(/\D/g, ''),
-      telefone: agendamento.telefone.replace(/\D/g, '')
-    };
-
-    const erro = isValidDataHora(agendamento.dataHora);
-    if (erro) {
-      toast.error(erro);
-      return;
-    }
-
-    await agendar(agendamentoFormatado);
-    toast.success('Agendamento realizado com sucesso!');
-  };
-
-
-  const handleConsultar = async () => {
-    const cpfFormatado = consultaCpf.replace(/\D/g, '');
-
-    if (!isValidCpf(consultaCpf)) {
-      return toast.error('CPF inválido.');
-    }
-
-    try {
-      const res = await consultarPorCpf(cpfFormatado);
-      setResultado(res.data);
-    } catch {
-      toast.warn('Agendamento não encontrado.');
-      setResultado(null);
-    }
-  };
-
-  const handleAlterarData = async () => {
-    const cpfFormatado = consultaCpf.replace(/\D/g, '');
-
-    const erro = isValidDataHora(novaData);
-    if (erro) {
-      toast.error(erro);
-      return;
-    }
-
-    try {
-      await alterarData(cpfFormatado, novaData);
-      toast.success('Data alterada!');
-    } catch {
-      toast.error('Erro ao alterar data.');
-    }
-  };
-
-  const handleCancelar = async () => {
-    const cpfFormatado = consultaCpf.replace(/\D/g, '');
-    try {
-      await cancelar(cpfFormatado);
-      toast.success('Agendamento cancelado.');
-      setResultado(null);
-    } catch {
-      toast.error('Erro ao cancelar.');
+  const verificarLoginERedirecionar = (rota: string) => {
+    if (!isClient) return;
+    const userCpf = localStorage.getItem('userCpf');
+    if (!userCpf) {
+      router.push('/pages/login');
+    } else {
+      router.push(rota);
     }
   };
 
   return (
-      <div className="max-w-xl mx-auto p-5">
-        <h1>Agendamento de Doação de Sangue</h1>
+      <>
+        <Header />
+        <main className="pt-24 px-8 pb-16">
+          <div className="max-w-5xl mx-auto text-center">
+            <div className="max-w-3xl mx-auto p-4 text-center">
+              <h1 className="text-4xl font-bold text-red-700 mb-8">Sobre a Doação de Sangue</h1>
 
-        <h2>Agendar</h2>
-        <input placeholder="Nome" name="nome" value={agendamento.nome} onChange={handleInput} maxLength={60} />
-        <input placeholder="CPF" name="cpf" value={agendamento.cpf} onChange={handleInput} maxLength={14} />
-        <input placeholder="Telefone" name="telefone" value={agendamento.telefone} onChange={handleInput} maxLength={15} />
-        <input type="datetime-local" name="dataHora" onChange={handleInput} />
-        <button onClick={handleAgendar}>Agendar</button>
+              <p className="text-lg leading-relaxed mb-12 text-center">
+                A doação de sangue é um ato de solidariedade e cidadania, que tem importância vital para a saúde pública.
+                A doação de sangue é 100% voluntária e beneficia qualquer pessoa. O sangue é essencial para os atendimentos
+                de sangramentos agudos em casos de urgências e emergências, realização de cirurgias de grande porte e tratamentos
+                de doenças crônicas que frequentemente demandam transfusões sanguíneas; e também na produção de medicamentos
+                essenciais derivados do plasma.
+              </p>
 
-        <hr />
+              <div className="flex flex-wrap md:flex-nowrap justify-center gap-4 w-full">
+                <button
+                    className="flex-1 min-w-[150px] px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                    onClick={() => verificarLoginERedirecionar('/pages/agendar_doacao')}
+                >
+                  Agendar <br /> Doação
+                </button>
 
-        <h2>Consultar/Alterar/Cancelar</h2>
-        <input
-            placeholder="CPF"
-            value={consultaCpf}
-            onChange={(e) => setConsultaCpf(maskCpf(e.target.value).slice(0, 14))}
-        />
-        <button onClick={handleConsultar}>Consultar</button>
+                <button
+                    className="flex-1 min-w-[150px] px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                    onClick={() => verificarLoginERedirecionar('/pages/consulta_doacao')}
+                >
+                  Consultar Agendamentos
+                </button>
 
-        {resultado && (
-            <div>
-              <p><strong>Nome:</strong> {resultado.nome}</p>
-              <p><strong>Data:</strong> {new Date(resultado.dataHora).toLocaleString()}</p>
+                <button
+                    className="flex-1 min-w-[150px] px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                    onClick={() => verificarLoginERedirecionar('/pages/historico_doacao')}
+                >
+                  Histórico de Doações
+                </button>
 
-              <input type="datetime-local" value={novaData} onChange={(e) => setNovaData(e.target.value)} />
-              <button onClick={handleAlterarData}>Alterar Data</button>
-              <button onClick={handleCancelar}>Cancelar Agendamento</button>
+                <button
+                    className="flex-1 min-w-[150px] px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                    onClick={() => router.push('/pages/locais_doacao')}
+                >
+                  Locais <br /> Próximos
+                </button>
+              </div>
             </div>
-        )}
-        <ToastContainer position="top-right" autoClose={3000} />
-      </div>
+          </div>
+        </main>
+      </>
   );
 }
