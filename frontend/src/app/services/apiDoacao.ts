@@ -16,3 +16,10 @@ export const alterarData = (cpf: string, novaDataHora: string) =>
     });
 
 export const cancelar = (cpf: string) => api.delete(`/${cpf}`);
+
+export const buscarProximosAgendamentos = async (hemocentroId: number): Promise<AgendamentoDTO[]> => {
+    const response = await api.get('/agendamentosPorHemocentro', {
+        params: { hemocentroId }
+    });
+    return response.data;
+};

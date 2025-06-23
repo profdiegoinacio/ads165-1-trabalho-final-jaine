@@ -10,6 +10,7 @@ export interface Agendamento {
 }
 
 export interface AgendamentoDTO {
+    id: number;
     nome: string;
     cpf: string;
     telefone: string;
