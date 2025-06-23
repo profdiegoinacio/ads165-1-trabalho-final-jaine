@@ -15,7 +15,7 @@ export default function Apresentacao() {
     if (!isClient) return;
     const userCpf = localStorage.getItem('userCpf');
     if (!userCpf) {
-      router.push('/pages/login');
+      router.push('/pages/login_usuario');
     } else {
       router.push(rota);
     }
